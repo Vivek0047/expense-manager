@@ -1,5 +1,6 @@
 <template>
-    <b-form action="#" method="post" autocomplete="off" :style="{backgroundColor: '#7b7b7d' }">
+    <b-form action="#" method="post" @submit.prevent="postForm" autocomplete="off"
+            :style="{backgroundColor: '#7b7b7d' }">
         <b-form-group>
             <ValidationProvider name="username" rules="required|userNameAvailable|min:4" v-slot="{classes,errors}">
                 <b-form-input v-model="signUp.UserName" placeholder="Try Username..." :class="classes">
@@ -8,8 +9,22 @@
             </ValidationProvider>
         </b-form-group>
         <b-form-group>
+            <ValidationProvider name="firstname" rules="required" v-slot="{classes,errors}">
+                <b-form-input v-model="signUp.FirstName" placeholder="First Name" :class="classes">
+                </b-form-input>
+                <span>{{ errors[0] }}</span>
+            </ValidationProvider>
+        </b-form-group>
+        <b-form-group>
+            <ValidationProvider name="lastname" rules="required" v-slot="{classes,errors}">
+                <b-form-input v-model="signUp.LastName" placeholder="Last Name" :class="classes">
+                </b-form-input>
+                <span>{{ errors[0] }}</span>
+            </ValidationProvider>
+        </b-form-group>
+        <b-form-group>
             <ValidationProvider name="email" rules="required|email" v-slot="{classes,errors}">
-                <b-form-input v-model="signUp.Email" placeholder="Enter email" required :class="classes">
+                <b-form-input v-model="signUp.Email" placeholder="Enter email" :class="classes">
                 </b-form-input>
                 <span>{{ errors[0] }}</span>
             </ValidationProvider>
@@ -47,6 +62,7 @@
 import {Component, Vue, Prop} from 'vue-property-decorator'
 import {ValidationProvider, extend, configure, ValidationObserver} from 'vee-validate'
 import {required, email, confirmed} from "vee-validate/dist/rules";
+import axios from 'axios';
 
 extend('min', {
     validate(value, {length}) {
@@ -88,14 +104,43 @@ configure({
 })
 
 export default class SignUp extends Vue {
-
+    private url = 'http://localhost:55430/api/ApplicationUsers/Register'
     public signUp: any = {
-        UserName: '', ContactNumber: '', Email: '', Password: '', ConfirmPassword: ''
+        UserName: '', ContactNumber: '', Email: '', Password: '', ConfirmPassword: '', FirstName: '', LastName: ''
     }
+
+    get FullName() {
+        return this.signUp.FirstName + ' ' + this.signUp.LastName;
+    }
+
+    makeToast(title: string, msg: string, variant: string) {
+        this.$bvToast.toast(msg ? msg : 'Please try again', {
+            title: `${title}`,
+            variant: variant ? variant : 'default',
+            solid: true
+        })
+    }
+
 
     mounted() {
         console.log('hi');
         console.log(this.signUp);
+    }
+
+    postForm() {
+        const model = {
+            UserName: this.signUp.UserName,
+            ContactNumber: this.signUp.ContactNumber,
+            Email: this.signUp.Email,
+            Password: this.signUp.Password,
+            FullName: this.FullName
+        };
+        let r = axios.post(this.url, model).then((response) => {
+            this.makeToast('Signup', 'SignUp complete', 'success');
+        }).catch((error) => {
+            console.log(error);
+            this.makeToast('SignUp Failed', 'Please try again', 'danger');
+        })
     }
 }
 </script>
