@@ -1,60 +1,68 @@
 <template>
-    <b-form action="#" method="post" @submit.prevent="postForm" autocomplete="off"
-            :style="{backgroundColor: '#7b7b7d' }">
-        <b-form-group>
-            <ValidationProvider name="username" rules="required|userNameAvailable|min:4" v-slot="{classes,errors}">
-                <b-form-input v-model="signUp.UserName" placeholder="Try Username..." :class="classes">
-                </b-form-input>
-                <span>{{ errors[0] }}</span>
-            </ValidationProvider>
-        </b-form-group>
-        <b-form-group>
-            <ValidationProvider name="firstname" rules="required" v-slot="{classes,errors}">
-                <b-form-input v-model="signUp.FirstName" placeholder="First Name" :class="classes">
-                </b-form-input>
-                <span>{{ errors[0] }}</span>
-            </ValidationProvider>
-        </b-form-group>
-        <b-form-group>
-            <ValidationProvider name="lastname" rules="required" v-slot="{classes,errors}">
-                <b-form-input v-model="signUp.LastName" placeholder="Last Name" :class="classes">
-                </b-form-input>
-                <span>{{ errors[0] }}</span>
-            </ValidationProvider>
-        </b-form-group>
-        <b-form-group>
-            <ValidationProvider name="email" rules="required|email" v-slot="{classes,errors}">
-                <b-form-input v-model="signUp.Email" placeholder="Enter email" :class="classes">
-                </b-form-input>
-                <span>{{ errors[0] }}</span>
-            </ValidationProvider>
-        </b-form-group>
-        <b-form-group>
-            <b-form-input v-model="signUp.ContactNumber" placeholder="Enter contact">
-            </b-form-input>
-        </b-form-group>
-        <ValidationObserver>
+    <ValidationObserver v-slot="{invalid}" ref="signUpObserver">
+        <b-form action="#" method="post" @submit.prevent="postForm" autocomplete="off" id="signUpForm">
             <b-form-group>
-                <validation-provider rules="required|confirmed:signUp.ConfirmPassword" v-slot="{errors,classes}"
-                                     vid="signUp.Password">
-                    <b-form-input type="password" v-model="signUp.Password" placeholder="Enter password"
+                <ValidationProvider name="username" rules="required|userNameAvailable|min:4"
+                                    v-slot="{classes,errors}">
+                    <b-form-input v-model="signUp.UserName" placeholder="Try Username..."
+                                  v-on:keyup="checkUserName"
                                   :class="classes">
                     </b-form-input>
                     <span>{{ errors[0] }}</span>
-                </validation-provider>
+                </ValidationProvider>
             </b-form-group>
             <b-form-group>
-                <validation-provider rules="required|confirmed:signUp.Password" v-slot="{errors,classes}"
-                                     vid="signUp.ConfirmPassword">
-                    <b-form-input type="password" v-model="signUp.ConfirmPassword" placeholder="Confirm password"
-                                  :class="classes">
+                <ValidationProvider name="firstname" rules="required" v-slot="{classes,errors}">
+                    <b-form-input v-model="signUp.FirstName" placeholder="First Name" :class="classes">
                     </b-form-input>
                     <span>{{ errors[0] }}</span>
-                </validation-provider>
+                </ValidationProvider>
             </b-form-group>
-        </ValidationObserver>
-        <b-button type="submit" align="centre" :style="{backgroundColor:'#8bc064'}"> Submit</b-button>
-    </b-form>
+            <b-form-group>
+                <ValidationProvider name="lastname" rules="required" v-slot="{classes,errors}">
+                    <b-form-input v-model="signUp.LastName" placeholder="Last Name" :class="classes">
+                    </b-form-input>
+                    <span>{{ errors[0] }}</span>
+                </ValidationProvider>
+            </b-form-group>
+            <b-form-group>
+                <ValidationProvider name="email" rules="required|email" v-slot="{classes,errors}">
+                    <b-form-input v-model="signUp.Email" placeholder="Enter email" :class="classes">
+                    </b-form-input>
+                    <span>{{ errors[0] }}</span>
+                </ValidationProvider>
+            </b-form-group>
+            <b-form-group>
+                <b-form-input v-model="signUp.ContactNumber" placeholder="Enter contact">
+                </b-form-input>
+            </b-form-group>
+            <ValidationObserver>
+                <b-form-group>
+                    <validation-provider rules="required|confirmed:signUp.ConfirmPassword" v-slot="{errors,classes}"
+                                         vid="signUp.Password">
+                        <b-form-input type="password" v-model="signUp.Password" placeholder="Enter password"
+                                      :class="classes">
+                        </b-form-input>
+                        <span>{{ errors[0] }}</span>
+                    </validation-provider>
+                </b-form-group>
+                <b-form-group>
+                    <validation-provider rules="required|confirmed:signUp.Password" v-slot="{errors,classes}"
+                                         vid="signUp.ConfirmPassword">
+                        <b-form-input type="password" v-model="signUp.ConfirmPassword" placeholder="Confirm password"
+                                      :class="classes">
+                        </b-form-input>
+                        <span>{{ errors[0] }}</span>
+                    </validation-provider>
+                </b-form-group>
+            </ValidationObserver>
+            <b-button type="submit" align="centre" :disabled="invalid"> Submit</b-button>
+            <p :style="{fontSize:'small',marginTop:'1rem'}">Have an account click
+                <router-link to="/Login">here</router-link>
+            </p>
+            <router-view></router-view>
+        </b-form>
+    </ValidationObserver>
 </template>
 
 <script lang="ts">
@@ -63,6 +71,8 @@ import {Component, Vue, Prop} from 'vue-property-decorator'
 import {ValidationProvider, extend, configure, ValidationObserver} from 'vee-validate'
 import {required, email, confirmed} from "vee-validate/dist/rules";
 import axios from 'axios';
+import router from "@/router";
+import instance from "@/router/axios";
 
 extend('min', {
     validate(value, {length}) {
@@ -113,18 +123,29 @@ export default class SignUp extends Vue {
         return this.signUp.FirstName + ' ' + this.signUp.LastName;
     }
 
+    checkUserName() {
+        console.log(this.signUp.UserName, 'checkusername');
+        if (this.signUp.UserName.length >= 4) {
+            const name = this.signUp.UserName;
+            instance({
+                url: '/ApplicationUsers/CheckUserName/' + this.signUp.UserName,
+                data: this.signUp.UserName,
+                method: 'get',
+                headers: {"Content-Type": "text/plain"}
+            }).then((response) => {
+                console.log(response)
+            }).catch((error) => {
+                this.$refs.signUpObserver.setErrors({username: 'This username taken'})
+            })
+        }
+    }
+
     makeToast(title: string, msg: string, variant: string) {
         this.$bvToast.toast(msg ? msg : 'Please try again', {
             title: `${title}`,
             variant: variant ? variant : 'default',
             solid: true
         })
-    }
-
-
-    mounted() {
-        console.log('hi');
-        console.log(this.signUp);
     }
 
     postForm() {
@@ -135,8 +156,9 @@ export default class SignUp extends Vue {
             Password: this.signUp.Password,
             FullName: this.FullName
         };
-        let r = axios.post(this.url, model).then((response) => {
+        instance({url: '/ApplicationUsers/Register', method: 'post', data: model}).then((response) => {
             this.makeToast('Signup', 'SignUp complete', 'success');
+            router.push({name: 'Login'});
         }).catch((error) => {
             console.log(error);
             this.makeToast('SignUp Failed', 'Please try again', 'danger');
